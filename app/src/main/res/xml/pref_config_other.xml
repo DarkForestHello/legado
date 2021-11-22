@@ -55,6 +55,12 @@
         <io.legado.app.ui.widget.prefs.Preference
             android:key="userAgent"
             android:title="UserAgent" />
+        
+        <io.legado.app.ui.widget.prefs.SwitchPreference
+            android:key="highBrush"
+            android:defaultValue="false"
+            android:title="@string/high_brush_title"
+            android:summary="@string/high_brush_summary" />
 
         <io.legado.app.ui.widget.prefs.Preference
             android:key="uploadRule"

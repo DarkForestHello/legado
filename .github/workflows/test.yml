@@ -32,7 +32,8 @@ jobs:
     needs: prepare
     strategy:
       matrix:
-        product: [app, google]
+        # product: [app, google]
+        product: [app]
         type: [release, releaseA]
       fail-fast: false
     runs-on: ubuntu-latest

@@ -66,25 +66,23 @@ abstract class BaseActivity<VB : ViewBinding>(
 
     override fun onCreate(savedInstanceState: Bundle?) {
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            getPrefBoolean(PreferKey.highBrush)
-        ) {
-            /**
-             * 添加高刷新率支持
-             */
-            // 获取系统window支持的模式
-            val modes = window.windowManager.defaultDisplay.supportedModes
-            // 对获取的模式，基于刷新率的大小进行排序，从小到大排序
-            modes.sortBy {
-                it.refreshRate
-            }
-            window.let {
-                val lp = it.attributes
-                // 取出最大的那一个刷新率，直接设置给window
-                lp.preferredDisplayModeId = modes.last().modeId
-                it.attributes = lp
-            }
+
+        /**
+         * 添加高刷新率支持
+         */
+        // 获取系统window支持的模式
+        val modes = window.windowManager.defaultDisplay.supportedModes
+        // 对获取的模式，基于刷新率的大小进行排序，从小到大排序
+        modes.sortBy {
+            it.refreshRate
         }
+        window.let {
+            val lp = it.attributes
+            // 取出最大的那一个刷新率，直接设置给window
+            lp.preferredDisplayModeId = modes.last().modeId
+            it.attributes = lp
+        }
+
         
         window.decorView.disableAutoFill()
         initTheme()

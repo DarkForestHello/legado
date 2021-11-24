@@ -1,6 +1,7 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -8,6 +9,7 @@ on:
       - 'CHANGELOG.md'
 #  schedule:
 #    - cron: '0 4 * * *'
+
 
 jobs:
   build:

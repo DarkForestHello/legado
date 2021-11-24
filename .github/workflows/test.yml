@@ -34,7 +34,8 @@ jobs:
       matrix:
         # product: [app, google]
         product: [app]
-        type: [release, releaseA]
+        #type: [release, releaseA]
+        type: [releaseA]
       fail-fast: false
     runs-on: ubuntu-latest
     env:

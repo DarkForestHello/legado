@@ -1,6 +1,7 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -8,6 +9,7 @@ on:
       - 'CHANGELOG.md'
 #  schedule:
 #    - cron: '0 4 * * *'
+
 
 jobs:
   build:
@@ -17,7 +19,7 @@ jobs:
       ylogin: ${{ secrets.LANZOU_ID }}
       phpdisk_info: ${{ secrets.LANZOU_PSD }}
       # 蓝奏云里的文件夹ID（阅读3测试版:2670621）
-      LANZOU_FOLDER_ID: 'b0f7pt4ja'
+      LANZOU_FOLDER_ID: '4363014'
       # 是否上传到artifact
       UPLOAD_ARTIFACT: 'true'
     steps:

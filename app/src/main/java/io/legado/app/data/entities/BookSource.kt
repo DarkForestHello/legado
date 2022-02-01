@@ -134,6 +134,13 @@ data class BookSource(
         return this
     }
 
+    fun hasGroup(group: String): Boolean {
+        bookSourceGroup?.splitNotBlank(AppPattern.splitGroupRegex)?.toHashSet()?.let {
+           return it.indexOf(group) != -1
+        }
+        return false
+    }
+
     fun equal(source: BookSource) =
         equal(bookSourceName, source.bookSourceName)
                 && equal(bookSourceUrl, source.bookSourceUrl)

@@ -10,10 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.R
 import io.legado.app.base.BaseFragment
-import io.legado.app.constant.AppConst
-import io.legado.app.constant.BookType
-import io.legado.app.constant.EventBus
-import io.legado.app.constant.PreferKey
+import io.legado.app.constant.*
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.databinding.FragmentBooksBinding
@@ -26,13 +23,17 @@ import io.legado.app.ui.book.read.ReadBookActivity
 import io.legado.app.ui.main.MainViewModel
 import io.legado.app.utils.*
 import io.legado.app.utils.viewbindingdelegate.viewBinding
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
 /**
  * 书架界面
  */
+@ExperimentalCoroutinesApi
 class BooksFragment() : BaseFragment(R.layout.fragment_books),
     BaseBooksAdapter.CallBack {
 
@@ -109,9 +110,10 @@ class BooksFragment() : BaseFragment(R.layout.fragment_books),
                 AppConst.bookGroupAudioId -> appDb.bookDao.flowAudio()
                 AppConst.bookGroupNoneId -> appDb.bookDao.flowNoGroup()
                 else -> appDb.bookDao.flowByGroup(groupId)
-            }.collect { list ->
-                binding.tvEmptyMsg.isGone = list.isNotEmpty()
-                val books = when (getPrefInt(PreferKey.bookshelfSort)) {
+            }.catch {
+                AppLog.put("书架更新出错", it)
+            }.mapLatest { list ->
+                when (getPrefInt(PreferKey.bookshelfSort)) {
                     1 -> list.sortedByDescending { it.latestChapterTime }
                     2 -> list.sortedWith { o1, o2 ->
                         o1.name.cnCompare(o2.name)
@@ -119,7 +121,9 @@ class BooksFragment() : BaseFragment(R.layout.fragment_books),
                     3 -> list.sortedBy { it.order }
                     else -> list.sortedByDescending { it.durChapterTime }
                 }
-                booksAdapter.setItems(books)
+            }.collect { list ->
+                binding.tvEmptyMsg.isGone = list.isNotEmpty()
+                booksAdapter.setItems(list)
             }
         }
     }

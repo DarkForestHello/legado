@@ -31,10 +31,9 @@ class BatteryView @JvmOverloads constructor(
             }
         }
     private var battery: Int = 0
-    private var batteryWidth = 0
 
     init {
-        setPadding(4.dp, 2.dp, 6.dp, 2.dp)
+        setPadding(4.dp, 3.dp, 6.dp, 3.dp)
         batteryPaint.strokeWidth = 1.dp.toFloat()
         batteryPaint.isAntiAlias = true
         batteryPaint.color = paint.color
@@ -53,28 +52,35 @@ class BatteryView @JvmOverloads constructor(
     }
 
     @SuppressLint("SetTextI18n")
-    fun setTextAndBattery(text: String = "", battery: Int = 0) {
+    fun setBattery(battery: Int, text: String? = null) {
         this.battery = battery
-        if (isBattery) {
-            batteryWidth = StaticLayout.getDesiredWidth(battery.toString(), paint).toInt()
+        if (text.isNullOrEmpty()) {
+            setText(battery.toString())
+        } else {
+            setText("$text  $battery")
         }
-        setText("$text  $battery")
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (!isBattery) return
+        layout.getLineBounds(0, outFrame)
+        val batteryStart = layout
+            .getPrimaryHorizontal(text.length - battery.toString().length)
+            .toInt() + 3.dp
+        val batteryEnd =
+            batteryStart + StaticLayout.getDesiredWidth(battery.toString(), paint).toInt() + 4.dp
         outFrame.set(
-            width - 6.dp - batteryWidth,
-            1.dp,
-            width - 3.dp,
-            height - 1.dp
+            batteryStart,
+            2.dp,
+            batteryEnd,
+            height - 2.dp
         )
         val dj = (outFrame.bottom - outFrame.top) / 3
         polar.set(
-            outFrame.right,
+            batteryEnd,
             outFrame.top + dj,
-            width - 1.dp,
+            batteryEnd + 2.dp,
             outFrame.bottom - dj
         )
         batteryPaint.style = Paint.Style.STROKE

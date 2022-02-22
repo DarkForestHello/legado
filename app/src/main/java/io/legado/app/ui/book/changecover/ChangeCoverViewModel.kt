@@ -20,6 +20,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
+import java.util.*
 import java.util.concurrent.Executors
 import kotlin.math.min
 
@@ -33,7 +34,7 @@ class ChangeCoverViewModel(application: Application) : BaseViewModel(application
     var name: String = ""
     var author: String = ""
     val dataFlow = callbackFlow<List<SearchBook>> {
-        val searchBooks = arrayListOf<SearchBook>()
+        val searchBooks = Collections.synchronizedList(arrayListOf<SearchBook>())
 
         searchSuccess = {
             if (!searchBooks.contains(it)) {
@@ -44,7 +45,7 @@ class ChangeCoverViewModel(application: Application) : BaseViewModel(application
 
         appDb.searchBookDao.getEnableHasCover(name, author).let {
             searchBooks.addAll(it)
-            trySend(searchBooks)
+            trySend(ArrayList(searchBooks))
         }
 
         if (searchBooks.size <= 1) {

@@ -3,13 +3,14 @@ package io.legado.app.lib.webdav
 import io.legado.app.help.http.newCallResponseBody
 import io.legado.app.help.http.okHttpClient
 import io.legado.app.help.http.text
+import io.legado.app.utils.printOnDebug
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.intellij.lang.annotations.Language
 import org.jsoup.Jsoup
-import timber.log.Timber
+
 import java.io.File
 import java.io.InputStream
 import java.net.MalformedURLException
@@ -49,7 +50,6 @@ class WebDav(urlStr: String) {
     val path get() = url.toString()
     var displayName: String? = null
     var size: Long = 0
-    var exists = false
     var parent = ""
     var urlName = ""
     var contentType = ""
@@ -101,7 +101,7 @@ class WebDav(urlStr: String) {
                     method("PROPFIND", requestBody)
                 }.text()
             }.onFailure { e ->
-                Timber.e(e)
+                e.printOnDebug()
             }.getOrNull()
         }
         return null
@@ -133,12 +133,22 @@ class WebDav(urlStr: String) {
                         }
                         list.add(webDavFile)
                     } catch (e: MalformedURLException) {
-                        Timber.e(e)
+                        e.printOnDebug()
                     }
                 }
             }
         }
         return list
+    }
+
+    /**
+     * 文件是否存在
+     */
+    suspend fun exists(): Boolean {
+        val response = propFindResponse() ?: return false
+        val document = Jsoup.parse(response)
+        val elements = document.getElementsByTag("d:response")
+        return elements.isNotEmpty()
     }
 
     /**
@@ -151,11 +161,13 @@ class WebDav(urlStr: String) {
         if (url != null && auth != null) {
             //防止报错
             return kotlin.runCatching {
-                okHttpClient.newCallResponseBody {
-                    url(url)
-                    method("MKCOL", null)
-                    addHeader("Authorization", Credentials.basic(auth.user, auth.pass))
-                }.close()
+                if (!exists()) {
+                    okHttpClient.newCallResponseBody {
+                        url(url)
+                        method("MKCOL", null)
+                        addHeader("Authorization", Credentials.basic(auth.user, auth.pass))
+                    }.close()
+                }
             }.isSuccess
         }
         return false

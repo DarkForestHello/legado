@@ -51,7 +51,11 @@ object Backup : BackupRestore() {
         val lastBackup = context.getPrefLong(PreferKey.lastBackup)
         if (lastBackup + TimeUnit.DAYS.toMillis(1) < System.currentTimeMillis()) {
             Coroutine.async {
-                backup(context, context.getPrefString(PreferKey.backupPath) ?: "", true)
+                if (!AppWebDav.hasBackUp()) {
+                    backup(context, context.getPrefString(PreferKey.backupPath), true)
+                } else {
+                    context.putPrefLong(PreferKey.lastBackup, System.currentTimeMillis())
+                }
             }.onError {
                 AppLog.put("备份出错\n${it.localizedMessage}", it)
                 appCtx.toastOnUi(appCtx.getString(R.string.autobackup_fail, it.localizedMessage))
@@ -59,7 +63,7 @@ object Backup : BackupRestore() {
         }
     }
 
-    suspend fun backup(context: Context, path: String, isAuto: Boolean = false) {
+    suspend fun backup(context: Context, path: String?, isAuto: Boolean = false) {
         context.putPrefLong(PreferKey.lastBackup, System.currentTimeMillis())
         withContext(IO) {
             FileUtils.deleteFile(backupPath)
@@ -103,12 +107,14 @@ object Backup : BackupRestore() {
                 edit.commit()
             }
             AppWebDav.backUpWebDav(backupPath)
-            if (path.isContentScheme()) {
-                copyBackup(context, Uri.parse(path), isAuto)
-            } else {
-                if (path.isEmpty()) {
+            when {
+                path.isNullOrBlank() -> {
                     copyBackup(context.getExternalFilesDir(null)!!, false)
-                } else {
+                }
+                path.isContentScheme() -> {
+                    copyBackup(context, Uri.parse(path), isAuto)
+                }
+                else -> {
                     copyBackup(File(path), isAuto)
                 }
             }

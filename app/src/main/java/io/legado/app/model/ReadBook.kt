@@ -23,7 +23,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import splitties.init.appCtx
-import timber.log.Timber
+
 
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -224,12 +224,10 @@ object ReadBook : CoroutineScope by MainScope() {
     /**
      * 当前页数
      */
-    fun durPageIndex(): Int {
-        curTextChapter?.let {
-            return it.getPageIndexByCharIndex(durChapterPos)
+    val durPageIndex: Int
+        get() {
+            return curTextChapter?.getPageIndexByCharIndex(durChapterPos) ?: durChapterPos
         }
-        return durChapterPos
-    }
 
     /**
      * chapterOnDur: 0为当前页,1为下一页,-1为上一页
@@ -380,7 +378,7 @@ object ReadBook : CoroutineScope by MainScope() {
                 }
             }
         }.onError {
-            Timber.e(it)
+            AppLog.put("ChapterProvider ERROR", it)
             appCtx.toastOnUi("ChapterProvider ERROR:\n${it.msg}")
         }.onSuccess {
             success?.invoke()

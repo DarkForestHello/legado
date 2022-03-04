@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.view.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import androidx.core.view.size
@@ -23,8 +24,8 @@ import io.legado.app.data.entities.BookProgress
 import io.legado.app.data.entities.BookSource
 import io.legado.app.help.BookHelp
 import io.legado.app.help.IntentData
-import io.legado.app.help.ReadBookConfig
-import io.legado.app.help.ReadTipConfig
+import io.legado.app.help.config.ReadBookConfig
+import io.legado.app.help.config.ReadTipConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.storage.AppWebDav
 import io.legado.app.help.storage.Backup
@@ -67,6 +68,7 @@ class ReadBookActivity : BaseReadBookActivity(),
     ReadView.CallBack,
     TextActionMenu.CallBack,
     ContentTextView.CallBack,
+    PopupMenu.OnMenuItemClickListener,
     ReadMenu.CallBack,
     SearchMenu.CallBack,
     ReadAloudDialog.CallBack,
@@ -118,6 +120,8 @@ class ReadBookActivity : BaseReadBookActivity(),
             }
         }
     private var menu: Menu? = null
+    private var changeSourceMenu: PopupMenu? = null
+    private var refreshMenu: PopupMenu? = null
     val textActionMenu: TextActionMenu by lazy {
         TextActionMenu(this, this)
     }
@@ -193,6 +197,24 @@ class ReadBookActivity : BaseReadBookActivity(),
 
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.book_read, menu)
+        menu.iconItemOnLongClick(R.id.menu_change_source) {
+            val changeSourceMenu = changeSourceMenu ?: PopupMenu(this, it).apply {
+                inflate(R.menu.book_read_change_source)
+                this.menu.applyOpenTint(this@ReadBookActivity)
+                setOnMenuItemClickListener(this@ReadBookActivity)
+                changeSourceMenu = this
+            }
+            changeSourceMenu.show()
+        }
+        menu.iconItemOnLongClick(R.id.menu_refresh) {
+            val refreshMenu = refreshMenu ?: PopupMenu(this, it).apply {
+                inflate(R.menu.book_read_refresh)
+                this.menu.applyOpenTint(this@ReadBookActivity)
+                setOnMenuItemClickListener(this@ReadBookActivity)
+                refreshMenu = this
+            }
+            refreshMenu.show()
+        }
         return super.onCompatCreateOptionsMenu(menu)
     }
 
@@ -238,6 +260,7 @@ class ReadBookActivity : BaseReadBookActivity(),
      */
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.menu_change_source,
             R.id.menu_book_change_source -> {
                 binding.readMenu.runMenuOut()
                 ReadBook.book?.let {
@@ -254,6 +277,7 @@ class ReadBookActivity : BaseReadBookActivity(),
                     ChangeChapterSourceDialog(book.name, book.author, chapter.index, chapter.title)
                 )
             }
+            R.id.menu_refresh,
             R.id.menu_refresh_dur -> {
                 if (ReadBook.bookSource == null) {
                     upContent()
@@ -350,6 +374,10 @@ class ReadBookActivity : BaseReadBookActivity(),
             R.id.menu_help -> showReadMenuHelp()
         }
         return super.onCompatOptionsItemSelected(item)
+    }
+
+    override fun onMenuItemClick(item: MenuItem): Boolean {
+        return onCompatOptionsItemSelected(item)
     }
 
     /**

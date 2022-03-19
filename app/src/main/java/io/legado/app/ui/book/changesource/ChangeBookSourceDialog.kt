@@ -67,6 +67,7 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
         initMenu()
         initRecyclerView()
         initSearchView()
+        initBottomBar()
         initLiveData()
     }
 
@@ -88,7 +89,6 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
     }
 
     private fun initRecyclerView() {
-        binding.recyclerView.layoutManager = LinearLayoutManager(context)
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
         binding.recyclerView.adapter = adapter
         adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
@@ -127,6 +127,19 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
             }
 
         })
+    }
+
+    private fun initBottomBar() {
+        binding.tvDur.text = callBack?.oldBook?.originName
+        binding.tvDur.setOnClickListener {
+            scrollToDurSource()
+        }
+        binding.ivTop.setOnClickListener {
+            binding.recyclerView.scrollToPosition(0)
+        }
+        binding.ivBottom.setOnClickListener {
+            binding.recyclerView.scrollToPosition(adapter.itemCount - 1)
+        }
     }
 
     private fun initLiveData() {
@@ -196,6 +209,16 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
             }
         }
         return false
+    }
+
+    private fun scrollToDurSource() {
+        adapter.getItems().forEachIndexed { index, searchBook ->
+            if (searchBook.bookUrl == bookUrl) {
+                (binding.recyclerView.layoutManager as LinearLayoutManager)
+                    .scrollToPositionWithOffset(index, 60.dpToPx())
+                return
+            }
+        }
     }
 
     override fun changeTo(searchBook: SearchBook) {

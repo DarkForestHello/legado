@@ -5,16 +5,17 @@ import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import io.legado.app.R
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.entities.BaseSource
 import io.legado.app.data.entities.Book
-import io.legado.app.help.BlurTransformation
 import io.legado.app.help.CacheManager
 import io.legado.app.help.DefaultData
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.glide.BlurTransformation
 import io.legado.app.help.glide.ImageLoader
 import io.legado.app.help.glide.OkHttpModelLoader
 import io.legado.app.model.analyzeRule.AnalyzeRule
@@ -86,17 +87,16 @@ object BookCover {
         loadOnlyWifi: Boolean = false
     ): RequestBuilder<Drawable> {
         val loadBlur = ImageLoader.load(context, defaultDrawable)
-            .apply(RequestOptions.bitmapTransform(BlurTransformation(context, 25)))
+            .transform(BlurTransformation(25), CenterCrop())
         return if (AppConfig.useDefaultCover) {
-            loadBlur.centerCrop()
+            loadBlur
         } else {
             val options = RequestOptions().set(OkHttpModelLoader.loadOnlyWifiOption, loadOnlyWifi)
             ImageLoader.load(context, path)
                 .apply(options)
+                .transform(BlurTransformation(25), CenterCrop())
                 .transition(DrawableTransitionOptions.withCrossFade(1500))
                 .thumbnail(loadBlur)
-                .apply(RequestOptions.bitmapTransform(BlurTransformation(context, 25)))
-                .centerCrop()
         }
     }
 

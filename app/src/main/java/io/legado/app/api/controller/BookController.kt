@@ -21,6 +21,7 @@ import io.legado.app.model.localBook.EpubFile
 import io.legado.app.model.localBook.LocalBook
 import io.legado.app.model.localBook.UmdFile
 import io.legado.app.model.webBook.WebBook
+import io.legado.app.ui.book.read.page.provider.ImageProvider
 import io.legado.app.utils.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -83,20 +84,14 @@ object BookController {
         if (this.bookUrl != bookUrl) {
             this.book = appDb.bookDao.getBook(bookUrl)
                 ?: return returnData.setErrorMsg("bookUrl不对")
-        }
-        val vFile = BookHelp.getImage(book, src)
-        if (!vFile.exists()) {
-            if (this.bookUrl != bookUrl) {
-                this.bookSource = appDb.bookSourceDao.getBookSource(book.origin)
-            }
-            runBlocking {
-                BookHelp.saveImage(bookSource, book, src)
-            }
+            this.bookSource = appDb.bookSourceDao.getBookSource(book.origin)
         }
         this.bookUrl = bookUrl
-        return returnData.setData(
-            BitmapUtils.decodeBitmap(vFile.absolutePath, width, width)
-        )
+        val bitmap = runBlocking {
+            ImageProvider.cacheImage(book, src, bookSource)
+            ImageProvider.getImage(book, src, width)
+        }
+        return returnData.setData(bitmap)
     }
 
     /**

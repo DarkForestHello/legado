@@ -6,10 +6,8 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.annotation.DrawableRes
 import com.bumptech.glide.RequestBuilder
-import io.legado.app.constant.AppPattern.dataUriRegex
-import io.legado.app.data.appDb
-import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.utils.isAbsUrl
+import io.legado.app.utils.isDataUrl
 import io.legado.app.utils.isContentScheme
 import java.io.File
 
@@ -19,32 +17,14 @@ object ImageLoader {
     /**
      * 自动判断path类型
      */
-    fun load(context: Context, path: String?, sourceOrigin: String? = null): RequestBuilder<Drawable> {
+    fun load(context: Context, path: String?): RequestBuilder<Drawable> {
         return when {
             path.isNullOrEmpty() -> GlideApp.with(context).load(path)
-            dataUriRegex.find(path) != null -> {
-                //glide内部已经实现dataUri解析
-                GlideApp.with(context).load(path)
-            }
-            path.isAbsUrl() -> {
-                kotlin.runCatching {
-                    val source = sourceOrigin?.let {
-                        appDb.bookSourceDao.getBookSource(it) ?: appDb.rssSourceDao.getByKey(it)
-                    }
-                    val url = AnalyzeUrl(path, source = source).getGlideUrl()
-                    GlideApp.with(context).load(url)
-                }.getOrDefault(
-                    GlideApp.with(context).load(path)
-                )
-            }
+            path.isDataUrl() -> GlideApp.with(context).load(path)
+            path.isAbsUrl() -> GlideApp.with(context).load(path)
             path.isContentScheme() -> GlideApp.with(context).load(Uri.parse(path))
             else -> kotlin.runCatching {
-                val file = File(path)
-                if (file.exists()) {
-                    GlideApp.with(context).load(file)
-                } else {
-                    GlideApp.with(context).load(path)
-                }
+                GlideApp.with(context).load(File(path))
             }.getOrElse {
                 GlideApp.with(context).load(path)
             }
@@ -54,8 +34,8 @@ object ImageLoader {
     fun loadBitmap(context: Context, path: String?): RequestBuilder<Bitmap> {
         return when {
             path.isNullOrEmpty() -> GlideApp.with(context).asBitmap().load(path)
-            path.isAbsUrl() -> GlideApp.with(context).asBitmap()
-                .load(AnalyzeUrl(path).getGlideUrl())
+            path.isDataUrl() -> GlideApp.with(context).asBitmap().load(path)
+            path.isAbsUrl() -> GlideApp.with(context).asBitmap().load(path)
             path.isContentScheme() -> GlideApp.with(context).asBitmap().load(Uri.parse(path))
             else -> kotlin.runCatching {
                 GlideApp.with(context).asBitmap().load(File(path))
@@ -68,7 +48,7 @@ object ImageLoader {
     fun loadFile(context: Context, path: String?): RequestBuilder<File> {
         return when {
             path.isNullOrEmpty() -> GlideApp.with(context).asFile().load(path)
-            path.isAbsUrl() -> GlideApp.with(context).asFile().load(AnalyzeUrl(path).getGlideUrl())
+            path.isAbsUrl() -> GlideApp.with(context).asFile().load(path)
             path.isContentScheme() -> GlideApp.with(context).asFile().load(Uri.parse(path))
             else -> kotlin.runCatching {
                 GlideApp.with(context).asFile().load(File(path))

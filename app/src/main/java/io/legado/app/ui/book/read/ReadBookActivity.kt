@@ -51,7 +51,6 @@ import io.legado.app.ui.book.read.config.TipConfigDialog.Companion.TIP_COLOR
 import io.legado.app.ui.book.read.page.ContentTextView
 import io.legado.app.ui.book.read.page.ReadView
 import io.legado.app.ui.book.read.page.entities.PageDirection
-import io.legado.app.ui.book.read.page.provider.ImageProvider
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.ui.book.searchContent.SearchContentActivity
 import io.legado.app.ui.book.searchContent.SearchResult
@@ -131,17 +130,17 @@ class ReadBookActivity : BaseReadBookActivity(),
     private var menu: Menu? = null
     private var changeSourceMenu: PopupMenu? = null
     private var refreshMenu: PopupMenu? = null
+    private var autoPageJob: Job? = null
+    private var backupJob: Job? = null
+    private var keepScreenJon: Job? = null
     val textActionMenu: TextActionMenu by lazy {
         TextActionMenu(this, this)
     }
-    private val popupAction by lazy {
+    private val popupAction: PopupAction by lazy {
         PopupAction(this)
     }
     override val isInitFinish: Boolean get() = viewModel.isInitFinish
     override val isScroll: Boolean get() = binding.readView.isScroll
-    private var keepScreenJon: Job? = null
-    private var autoPageJob: Job? = null
-    private var backupJob: Job? = null
     override var autoPageProgress = 0
     override var isAutoPage = false
     override var isShowingSearchResult = false
@@ -959,19 +958,18 @@ class ReadBookActivity : BaseReadBookActivity(),
     /**
      * 长按图片
      */
+    @SuppressLint("RtlHardcoded")
     override fun onImageLongPress(x: Float, y: Float, src: String) {
         popupAction.setItems(
             listOf(
-                SelectItem("查看", "show"),
-                SelectItem("刷新", "refresh")
+                SelectItem(getString(R.string.show), "show"),
+                SelectItem(getString(R.string.refresh), "refresh")
             )
         )
         popupAction.onActionClick = {
             when (it) {
                 "show" -> showDialogFragment(PhotoDialog(src))
-                "refresh" -> {
-                    ImageProvider.bitmapLruCache.remove(src)
-                }
+                "refresh" -> viewModel.refreshImage(src)
             }
             popupAction.dismiss()
         }
@@ -979,7 +977,7 @@ class ReadBookActivity : BaseReadBookActivity(),
             if (!ReadBookConfig.hideNavigationBar && navigationBarGravity == Gravity.BOTTOM)
                 navigationBarHeight else 0
         popupAction.showAtLocation(
-            binding.readView, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL, x.toInt(),
+            binding.readView, Gravity.BOTTOM or Gravity.LEFT, x.toInt(),
             binding.root.height + navigationBarHeight - y.toInt()
         )
     }

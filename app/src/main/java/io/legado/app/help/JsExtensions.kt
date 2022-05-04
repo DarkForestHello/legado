@@ -15,6 +15,7 @@ import io.legado.app.help.http.*
 import io.legado.app.model.Debug
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.model.analyzeRule.QueryTTF
+import io.legado.app.ui.browser.WebViewActivity
 import io.legado.app.utils.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.async
@@ -132,6 +133,19 @@ interface JsExtensions {
     }
 
     /**
+     * 使用内置浏览器打开链接，可用于获取验证码 手动验证网站防爬
+     * @param url 要打开的链接
+     * @param title 浏览器页面的标题
+     */
+    fun startBrowser(url: String, title: String) {
+        appCtx.startActivity<WebViewActivity> {
+            putExtra("title", title)
+            putExtra("url", url)
+            IntentData.put(url, getSource()?.getHeaderMap(true))
+        }
+    }
+
+    /**
      * 可从网络，本地文件(阅读私有缓存目录和书籍保存位置支持相对路径)导入JavaScript脚本
      */
     fun importScript(path: String): String {
@@ -215,6 +229,19 @@ interface JsExtensions {
             .followRedirects(false)
             .headers(headers)
             .method(Connection.Method.GET)
+            .execute()
+    }
+
+    /**
+     * js实现重定向拦截,网络访问head,不返回Response Body更省流量
+     */
+    fun head(urlStr: String, headers: Map<String, String>): Connection.Response {
+        return Jsoup.connect(urlStr)
+            .sslSocketFactory(SSLHelper.unsafeSSLSocketFactory)
+            .ignoreContentType(true)
+            .followRedirects(false)
+            .headers(headers)
+            .method(Connection.Method.HEAD)
             .execute()
     }
 

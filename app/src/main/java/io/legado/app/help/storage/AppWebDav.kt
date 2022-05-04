@@ -13,6 +13,8 @@ import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.webdav.Authorization
 import io.legado.app.lib.webdav.WebDav
+import io.legado.app.lib.webdav.WebDavException
+import io.legado.app.lib.webdav.WebDavFile
 import io.legado.app.utils.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
@@ -79,19 +81,14 @@ object AppWebDav {
     }
 
     @Throws(Exception::class)
-    private suspend fun getWebDavFileNames(relativePath: String? = null): ArrayList<String> {
-        val url = if (relativePath == null) {
-            rootWebDavUrl
-        } else {
-            NetworkUtils.getAbsoluteURL(rootWebDavUrl, relativePath)
-        }
+    private suspend fun getBackupNames(): ArrayList<String> {
         val names = arrayListOf<String>()
         authorization?.let {
-            var files = WebDav(url, it).listFiles()
+            var files = WebDav(rootWebDavUrl, it).listFiles()
             files = files.reversed()
             files.forEach { webDav ->
                 val name = webDav.displayName
-                if (name?.startsWith("backup") == true) {
+                if (name.startsWith("backup")) {
                     names.add(name)
                 }
             }
@@ -100,7 +97,7 @@ object AppWebDav {
     }
 
     suspend fun showRestoreDialog(context: Context) {
-        val names = withContext(IO) { getWebDavFileNames() }
+        val names = withContext(IO) { getBackupNames() }
         if (names.isNotEmpty()) {
             withContext(Main) {
                 context.selector(
@@ -111,7 +108,7 @@ object AppWebDav {
                         Coroutine.async {
                             restoreWebDav(names[index])
                         }.onError {
-                            appCtx.toastOnUi("WebDavError\n${it.localizedMessage}")
+                            appCtx.toastOnUi("WebDav恢复出错\n${it.localizedMessage}")
                         }
                     }
                 }
@@ -121,7 +118,8 @@ object AppWebDav {
         }
     }
 
-    private suspend fun restoreWebDav(name: String) {
+    @Throws(WebDavException::class)
+    suspend fun restoreWebDav(name: String) {
         authorization?.let {
             val webDav = WebDav(rootWebDavUrl + name, it)
             webDav.downloadTo(zipFilePath, true)
@@ -138,6 +136,24 @@ object AppWebDav {
             return WebDav(url, it).exists()
         }
         return false
+    }
+
+    suspend fun lastBackUp(): Result<WebDavFile?> {
+        return kotlin.runCatching {
+            authorization?.let {
+                var lastBackupFile: WebDavFile? = null
+                WebDav(rootWebDavUrl, it).listFiles().reversed().forEach { webDavFile ->
+                    if (webDavFile.displayName.startsWith("backup")) {
+                        if (lastBackupFile == null
+                            || webDavFile.lastModify > lastBackupFile!!.lastModify
+                        ) {
+                            lastBackupFile = webDavFile
+                        }
+                    }
+                }
+                lastBackupFile
+            }
+        }
     }
 
     @Throws(Exception::class)
@@ -195,10 +211,12 @@ object AppWebDav {
     suspend fun getBookProgress(book: Book): BookProgress? {
         authorization?.let {
             val url = getProgressUrl(book)
-            WebDav(url, it).download()?.let { byteArray ->
-                val json = String(byteArray)
-                if (json.isJson()) {
-                    return GSON.fromJsonObject<BookProgress>(json).getOrNull()
+            kotlin.runCatching {
+                WebDav(url, it).download().let { byteArray ->
+                    val json = String(byteArray)
+                    if (json.isJson()) {
+                        return GSON.fromJsonObject<BookProgress>(json).getOrNull()
+                    }
                 }
             }
         }

@@ -17,6 +17,7 @@ import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.AppConst
 import io.legado.app.databinding.ActivityWebViewBinding
+import io.legado.app.help.SourceVerificationHelp
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.CookieStore
 import io.legado.app.lib.dialogs.SelectItem
@@ -26,6 +27,7 @@ import io.legado.app.ui.document.HandleFileContract
 import io.legado.app.utils.*
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import java.net.URLDecoder
+import kotlinx.coroutines.runBlocking
 
 class WebViewActivity : VMBaseActivity<ActivityWebViewBinding, WebViewModel>() {
 
@@ -65,6 +67,13 @@ class WebViewActivity : VMBaseActivity<ActivityWebViewBinding, WebViewModel>() {
         when (item.itemId) {
             R.id.menu_open_in_browser -> openUrl(viewModel.baseUrl)
             R.id.menu_copy_url -> sendToClip(viewModel.baseUrl)
+            R.id.menu_ok -> {
+                if (viewModel.sourceVerificationEnable) {
+                    viewModel.saveVerificationResult {
+                        finish()
+                    }
+                }
+            }
         }
         return super.onCompatOptionsItemSelected(item)
     }
@@ -135,7 +144,6 @@ class WebViewActivity : VMBaseActivity<ActivityWebViewBinding, WebViewModel>() {
             viewModel.saveImage(webPic, path)
         }
     }
-
     private fun selectSaveFolder() {
         val default = arrayListOf<SelectItem<Int>>()
         val path = ACache.get(this).getAsString(imagePathKey)
@@ -175,6 +183,7 @@ class WebViewActivity : VMBaseActivity<ActivityWebViewBinding, WebViewModel>() {
     }
 
     override fun onDestroy() {
+        SourceVerificationHelp.checkResult()
         super.onDestroy()
         binding.webView.destroy()
     }

@@ -870,6 +870,8 @@
     <string name="check_source_show_debug_message_summary">书源校验时显示网络请求步骤和时间</string>
     <string name="need_login">需登录</string>
     <string name="pref_cronet_summary">使用Cronet网络组件</string>
+    <string name="anti_alias">抗锯齿</string>
+    <string name="pref_anti_alias_summary">绘制图片时抗锯齿</string>
     <string name="upload_url">上传URL</string>
     <string name="download_url_rule">下载URL规则</string>
     <string name="sort_by_respondTime">响应时间排序</string>
@@ -971,5 +973,7 @@
     <string name="change_source_batch">批量换源</string>
     <string name="book_type_different">书籍类型不一样</string>
     <string name="soure_change_source">是否确认换源</string>
+    <string name="input_verification_code">输入验证码</string>
+    <string name="verification_code">验证码</string>
     <!-- string end -->
 </resources>

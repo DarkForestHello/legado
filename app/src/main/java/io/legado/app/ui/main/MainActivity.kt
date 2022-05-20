@@ -102,6 +102,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
                 alert("恢复", "webDav书源比本地新,是否恢复") {
                     cancelButton()
                     okButton {
+                        LocalConfig.lastBackup = lastBackupFile.lastModify
                         viewModel.restoreWebDav(lastBackupFile.displayName)
                     }
                 }

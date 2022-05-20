@@ -13,6 +13,7 @@ import kotlinx.parcelize.Parcelize
 import splitties.init.appCtx
 import java.io.InputStream
 
+@Suppress("unused")
 @Parcelize
 @TypeConverters(BookSource.Converters::class)
 @Entity(
@@ -161,7 +162,7 @@ data class BookSource(
 
     fun removeGroup(groups: String): BookSource {
         bookSourceGroup?.splitNotBlank(AppPattern.splitGroupRegex)?.toHashSet()?.let {
-            it.removeAll(groups.splitNotBlank(AppPattern.splitGroupRegex))
+            it.removeAll(groups.splitNotBlank(AppPattern.splitGroupRegex).toSet())
             bookSourceGroup = TextUtils.join(",", it)
         }
         return this
@@ -193,6 +194,7 @@ data class BookSource(
                 && equal(bookSourceComment, source.bookSourceComment)
                 && enabled == source.enabled
                 && enabledExplore == source.enabledExplore
+                && enabledCookieJar == source.enabledCookieJar
                 && equal(header, source.header)
                 && loginUrl == source.loginUrl
                 && equal(exploreUrl, source.exploreUrl)

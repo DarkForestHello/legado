@@ -49,7 +49,11 @@ class CacheViewModel(application: Application) : BaseViewModel(application) {
         val bindings = SimpleBindings()
         bindings["name"] = book.name
         bindings["author"] = book.getRealAuthor()
-        return AppConst.SCRIPT_ENGINE.eval(jsStr, bindings).toString()
+        return kotlin.runCatching {
+            AppConst.SCRIPT_ENGINE.eval(jsStr, bindings).toString()
+        }.onFailure {
+            context.toastOnUi("书名规则错误\n${it.localizedMessage}")
+        }.getOrDefault("${book.name} 作者：${book.getRealAuthor()}")
     }
 
     fun export(path: String, book: Book) {
@@ -168,17 +172,22 @@ class CacheViewModel(application: Application) : BaseViewModel(application) {
                         chineseConvert = false,
                         reSegment = false
                     ).joinToString("\n")
-                val srcList = arrayListOf<Triple<String, Int, String>>()
-                content?.split("\n")?.forEachIndexed { index, text ->
-                    val matcher = AppPattern.imgPattern.matcher(text)
-                    while (matcher.find()) {
-                        matcher.group(1)?.let {
-                            val src = NetworkUtils.getAbsoluteURL(chapter.url, it)
-                            srcList.add(Triple(chapter.title, index, src))
+                if (AppConfig.exportPictureFile) {
+                    //txt导出图片文件
+                    val srcList = arrayListOf<Triple<String, Int, String>>()
+                    content?.split("\n")?.forEachIndexed { index, text ->
+                        val matcher = AppPattern.imgPattern.matcher(text)
+                        while (matcher.find()) {
+                            matcher.group(1)?.let {
+                                val src = NetworkUtils.getAbsoluteURL(chapter.url, it)
+                                srcList.add(Triple(chapter.title, index, src))
+                            }
                         }
                     }
+                    append.invoke("\n\n$content1", srcList)
+                } else {
+                    append.invoke("\n\n$content1", null)
                 }
-                append.invoke("\n\n$content1", srcList)
             }
         }
     }

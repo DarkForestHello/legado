@@ -19,13 +19,14 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.net.MalformedURLException
 import java.net.URL
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-open class WebDav(urlStr: String, val authorization: Authorization) {
+open class WebDav(val path: String, val authorization: Authorization) {
     companion object {
 
         @SuppressLint("DateTimeFormatter")
@@ -47,7 +48,7 @@ open class WebDav(urlStr: String, val authorization: Authorization) {
             </a:propfind>"""
     }
 
-    private val url: URL = URL(urlStr)
+    private val url: URL = URL(path)
     private val httpUrl: String? by lazy {
         val raw = url.toString().replace("davs://", "https://").replace("dav://", "http://")
         return@lazy kotlin.runCatching {
@@ -58,8 +59,6 @@ open class WebDav(urlStr: String, val authorization: Authorization) {
         }.getOrNull()
     }
     val host: String? get() = url.host
-    val path get() = url.toString()
-
 
     /**
      * 获取当前url文件信息
@@ -127,7 +126,7 @@ open class WebDav(urlStr: String, val authorization: Authorization) {
         httpUrl?.let { urlStr ->
             val baseUrl = NetworkUtils.getBaseUrl(urlStr)
             for (element in elements) {
-                val href = element.getElementsByTag("d:href")[0].text()
+                val href = URLDecoder.decode(element.getElementsByTag("d:href")[0].text(), "UTF-8")
                 if (!href.endsWith("/")) {
                     val fileName = href.substring(href.lastIndexOf("/") + 1)
                     val webDavFile: WebDav

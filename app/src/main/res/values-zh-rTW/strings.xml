@@ -195,6 +195,7 @@
     <string name="img_cover">封面</string>
     <string name="book">書</string>
     <string name="volume_key_page">音量鍵翻頁</string>
+    <string name="mouse_wheel_page">鼠标滚动翻页</string>
     <string name="click_turn_page">點擊翻頁</string>
     <string name="page_anim">翻頁動畫</string>
     <string name="book_page_anim">翻頁動畫(本書)</string>
@@ -349,6 +350,7 @@
     <string name="swap_sort">倒序-順序</string>
     <string name="sort">排序</string>
     <string name="sort_auto">智慧排序</string>
+    <string name="sort_default">默認排序</string>
     <string name="sort_manual">手動排序</string>
     <string name="sort_by_name">名稱排序</string>
     <string name="go_to_top">滾動到頂部</string>

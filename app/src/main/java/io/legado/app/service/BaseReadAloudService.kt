@@ -37,11 +37,16 @@ abstract class BaseReadAloudService : BaseService(),
     AudioManager.OnAudioFocusChangeListener {
 
     companion object {
+        @JvmStatic
         var isRun = false
             private set
-        var timeMinute: Int = 0
-            private set
+
+        @JvmStatic
         var pause = true
+            private set
+
+        @JvmStatic
+        var timeMinute: Int = 0
             private set
 
         fun isPlay(): Boolean {
@@ -138,6 +143,7 @@ abstract class BaseReadAloudService : BaseService(),
     }
 
     open fun play() {
+        isRun = true
         pause = false
         upNotification()
         postEvent(EventBus.ALOUD_STATE, Status.PLAY)

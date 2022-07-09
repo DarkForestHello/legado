@@ -103,8 +103,8 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
         return super.onCompatCreateOptionsMenu(menu)
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        groupMenu = menu?.findItem(R.id.menu_group)?.subMenu
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        groupMenu = menu.findItem(R.id.menu_group)?.subMenu
         upGroupMenu()
         return super.onPrepareOptionsMenu(menu)
     }
@@ -242,10 +242,10 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
                 }
                 searchKey.startsWith("group:") -> {
                     val key = searchKey.substringAfter("group:")
-                    appDb.rssSourceDao.flowGroupSearch("%$key%")
+                    appDb.rssSourceDao.flowGroupSearch(key)
                 }
                 else -> {
-                    appDb.rssSourceDao.flowSearch("%$searchKey%")
+                    appDb.rssSourceDao.flowSearch(searchKey)
                 }
             }.catch {
                 AppLog.put("订阅源管理界面更新数据出错", it)

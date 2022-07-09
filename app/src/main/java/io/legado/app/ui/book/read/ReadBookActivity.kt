@@ -68,6 +68,9 @@ import io.legado.app.utils.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 
+/**
+ * 阅读界面
+ */
 class ReadBookActivity : BaseReadBookActivity(),
     View.OnTouchListener,
     ReadView.CallBack,
@@ -125,8 +128,6 @@ class ReadBookActivity : BaseReadBookActivity(),
             }
         }
     private var menu: Menu? = null
-    private var changeSourceMenu: PopupMenu? = null
-    private var refreshMenu: PopupMenu? = null
     private var autoPageJob: Job? = null
     private var backupJob: Job? = null
     private var keepScreenJon: Job? = null
@@ -151,6 +152,8 @@ class ReadBookActivity : BaseReadBookActivity(),
     override val pageFactory: TextPageFactory get() = binding.readView.pageFactory
     override val headerHeight: Int get() = binding.readView.curPage.headerHeight
     private val menuLayoutIsVisible get() = bottomDialog > 0 || binding.readMenu.isVisible
+    private val nextPageRunnable by lazy { Runnable { mouseWheelPage(PageDirection.NEXT) } }
+    private val prevPageRunnable by lazy { Runnable { mouseWheelPage(PageDirection.PREV) } }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -202,27 +205,23 @@ class ReadBookActivity : BaseReadBookActivity(),
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.book_read, menu)
         menu.iconItemOnLongClick(R.id.menu_change_source) {
-            val changeSourceMenu = changeSourceMenu ?: PopupMenu(this, it).apply {
+            PopupMenu(this, it).apply {
                 inflate(R.menu.book_read_change_source)
                 this.menu.applyOpenTint(this@ReadBookActivity)
                 setOnMenuItemClickListener(this@ReadBookActivity)
-                changeSourceMenu = this
-            }
-            changeSourceMenu.show()
+            }.show()
         }
         menu.iconItemOnLongClick(R.id.menu_refresh) {
-            val refreshMenu = refreshMenu ?: PopupMenu(this, it).apply {
+            PopupMenu(this, it).apply {
                 inflate(R.menu.book_read_refresh)
                 this.menu.applyOpenTint(this@ReadBookActivity)
                 setOnMenuItemClickListener(this@ReadBookActivity)
-                refreshMenu = this
-            }
-            refreshMenu.show()
+            }.show()
         }
         return super.onCompatCreateOptionsMenu(menu)
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         this.menu = menu
         upMenu()
         return super.onPrepareOptionsMenu(menu)
@@ -401,6 +400,28 @@ class ReadBookActivity : BaseReadBookActivity(),
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    /**
+     * 鼠标滚轮事件
+     */
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (0 != (event.source and InputDevice.SOURCE_CLASS_POINTER)) {
+            if (event.action == MotionEvent.ACTION_SCROLL) {
+                val axisValue = event.getAxisValue(MotionEvent.AXIS_VSCROLL)
+                LogUtils.d("onGenericMotionEvent", "axisValue = $axisValue")
+                mainHandler.removeCallbacks(nextPageRunnable)
+                mainHandler.removeCallbacks(prevPageRunnable)
+                // 获得垂直坐标上的滚动方向
+                if (axisValue < 0.0f) { // 滚轮向下滚
+                    mainHandler.postDelayed(nextPageRunnable, 200)
+                } else { // 滚轮向上滚
+                    mainHandler.postDelayed(prevPageRunnable, 200)
+                }
+                return true
+            }
+        }
+        return super.onGenericMotionEvent(event)
     }
 
     /**
@@ -636,13 +657,27 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     /**
+     * 鼠标滚轮翻页
+     */
+    private fun mouseWheelPage(direction: PageDirection): Boolean {
+        if (!binding.readMenu.isVisible) {
+            if (getPrefBoolean("mouseWheelPage", true)) {
+                binding.readView.pageDelegate?.isCancel = false
+                binding.readView.pageDelegate?.keyTurnPage(direction)
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
      * 音量键翻页
      */
     private fun volumeKeyPage(direction: PageDirection): Boolean {
         if (!binding.readMenu.isVisible) {
             if (getPrefBoolean("volumeKeyPage", true)) {
                 if (getPrefBoolean("volumeKeyPageOnPlay")
-                    || BaseReadAloudService.pause
+                    || !BaseReadAloudService.isPlay()
                 ) {
                     binding.readView.pageDelegate?.isCancel = false
                     binding.readView.pageDelegate?.keyTurnPage(direction)

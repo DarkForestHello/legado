@@ -192,6 +192,7 @@
     <string name="img_cover">Portada</string>
     <string name="book">Libro</string>
     <string name="volume_key_page">Botones de volumen para pasar página</string>
+    <string name="mouse_wheel_page">Rueda del ratón para pasar página</string>
     <string name="click_turn_page">Toque la pantalla para pasar página</string>
     <string name="page_anim">Animación de hojeada</string>
     <string name="book_page_anim">Animación de hojeada (libro)</string>
@@ -346,6 +347,7 @@
     <string name="swap_sort">Orden ascendente/descendente</string>
     <string name="sort">Ordenar</string>
     <string name="sort_auto">Ordenar automáticamente</string>
+    <string name="sort_default">Ordenar por defecto</string>
     <string name="sort_manual">Ordenar manualmente</string>
     <string name="sort_by_name">Ordenar por nombre</string>
     <string name="go_to_top">Ir al principio</string>

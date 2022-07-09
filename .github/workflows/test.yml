@@ -4,13 +4,8 @@ on:
   push:
     branches:
       - master
-    paths:
-      - '**'
-      - '!**/assets/**'
-      - '!**.md'
-  pull_request:
   workflow_dispatch:
-
+  
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -20,25 +15,27 @@ jobs:
       lanzou: ${{ steps.check.outputs.lanzou }}
       telegram: ${{ steps.check.outputs.telegram }}
     steps:
-      - id: set-ver
-        run: |
-          echo "::set-output name=version::$(date -d "8 hour" -u +3.%y.%m%d%H)"
-          echo "::set-output name=versionL::$(date -d "8 hour" -u +3.%y.%m%d%H%M)"
-      - id: check
-        run: |
-          if [ ${{ secrets.LANZOU_ID }} ]; then
-            echo "::set-output name=lanzou::yes"
-          fi
-          if [ ${{ secrets.BOT_TOKEN }} ]; then
-            echo "::set-output name=telegram::yes"
-          fi
-
+    - id: set-ver
+      run: |
+        echo "::set-output name=version::$(date -d "8 hour" -u +3.%y.%m%d%H)"
+        echo "::set-output name=versionL::$(date -d "8 hour" -u +3.%y.%m%d%H%M)"
+    - id: check
+      run: |
+        if [ ${{ secrets.LANZOU_ID }} ]; then
+          echo "::set-output name=lanzou::yes"
+        fi
+        if [ ${{ secrets.BOT_TOKEN }} ]; then
+          echo "::set-output name=telegram::yes"
+        fi
+      
   build:
     needs: prepare
     strategy:
       matrix:
-        product: [ app, google ]
-        type: [ release, releaseA ]
+        # product: [app, google]
+        product: [app]
+        #type: [release, releaseA]
+        type: [releaseA]
       fail-fast: false
     runs-on: ubuntu-latest
     env:
@@ -96,15 +93,15 @@ jobs:
           path: ${{ github.workspace }}/apk/*.apk
 
   lanzou:
-    needs: [ prepare, build ]
-    if: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.lanzou == 'yes' }}
+    needs: [prepare, build]
+    if: ${{ needs.prepare.outputs.lanzou }}
     runs-on: ubuntu-latest
     env:
       # 登录蓝奏云后在控制台运行document.cookie
       ylogin: ${{ secrets.LANZOU_ID }}
       phpdisk_info: ${{ secrets.LANZOU_PSD }}
       # 蓝奏云里的文件夹ID（阅读3测试版:2670621）
-      LANZOU_FOLDER_ID: '2670621'
+      LANZOU_FOLDER_ID: '4362859'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -117,12 +114,11 @@ jobs:
         run: |
           path="$GITHUB_WORKSPACE/apk/"
           python3 $GITHUB_WORKSPACE/.github/scripts/lzy_web.py "$path" "$LANZOU_FOLDER_ID"
-          echo "[$(date -u -d '+8 hour' '+%Y.%m.%d %H:%M:%S')] 分享链接: https://kunfei.lanzoux.com/b0f810h4b"
+          echo "[$(date -u -d '+8 hour' '+%Y.%m.%d %H:%M:%S')] 分享链接: https://wwz.lanzouo.com/b02ui6iej"
 
   test_Branch:
-    needs: [ prepare, build ]
+    needs: [prepare, build]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' && github.actor == 'gedoor' }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -132,19 +128,19 @@ jobs:
         run: mv */*.apk . ;rm -rf */
       - name: Push To "test" Branch
         run: |
-          cd $GITHUB_WORKSPACE/apk/
+          cd $GITHUB_WORKSPACE/apk
           git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b test
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote add origin "https://${{ github.actor }}:${{ secrets.ACTIONS_TOKEN }}@github.com/${{ github.actor }}/release"
           git add *.apk
           git commit -m "${{ needs.prepare.outputs.versionL }}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin test
 
   telegram:
-    needs: [ prepare, build ]
-    if: ${{ github.event_name != 'pull_request' && needs.prepare.outputs.telegram == 'yes' }}
+    needs: [prepare, build]
+    if: ${{ needs.prepare.outputs.telegram }}
     runs-on: ubuntu-latest
     env:
       CHANNEL_ID: ${{ secrets.CHANNEL_ID }}

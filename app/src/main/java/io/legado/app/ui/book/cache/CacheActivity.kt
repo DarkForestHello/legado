@@ -54,11 +54,11 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
     private val exportDir = registerForActivityResult(HandleFileContract()) { result ->
         result.uri?.let { uri ->
             if (uri.isContentScheme()) {
-                ACache.get(this@CacheActivity).put(exportBookPathKey, uri.toString())
+                ACache.get().put(exportBookPathKey, uri.toString())
                 startExport(uri.toString(), result.requestCode)
             } else {
                 uri.path?.let { path ->
-                    ACache.get(this@CacheActivity).put(exportBookPathKey, path)
+                    ACache.get().put(exportBookPathKey, path)
                     startExport(path, result.requestCode)
                 }
             }
@@ -232,7 +232,11 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
                 }
                 menu?.applyTint(this)
             }
-            adapter.notifyItemRangeChanged(0, adapter.itemCount, true)
+            adapter.getItems().forEachIndexed { index, book ->
+                if (book.bookUrl == it) {
+                    adapter.notifyItemChanged(index, true)
+                }
+            }
         }
         observeEvent<BookChapter>(EventBus.SAVE_CONTENT) {
             adapter.cacheChapters[it.bookUrl]?.add(it.url)
@@ -240,7 +244,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
     }
 
     override fun export(position: Int) {
-        val path = ACache.get(this@CacheActivity).getAsString(exportBookPathKey)
+        val path = ACache.get().getAsString(exportBookPathKey)
         if (path.isNullOrEmpty()) {
             selectExportFolder(position)
         } else {
@@ -249,7 +253,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
     }
 
     private fun exportAll() {
-        val path = ACache.get(this@CacheActivity).getAsString(exportBookPathKey)
+        val path = ACache.get().getAsString(exportBookPathKey)
         if (path.isNullOrEmpty()) {
             selectExportFolder(-10)
         } else {
@@ -259,7 +263,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
 
     private fun selectExportFolder(exportPosition: Int) {
         val default = arrayListOf<SelectItem<Int>>()
-        val path = ACache.get(this@CacheActivity).getAsString(exportBookPathKey)
+        val path = ACache.get().getAsString(exportBookPathKey)
         if (!path.isNullOrEmpty()) {
             default.add(SelectItem(path, -1))
         }

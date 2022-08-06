@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.view.*
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,10 +15,7 @@ import androidx.core.view.size
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import io.legado.app.BuildConfig
 import io.legado.app.R
-import io.legado.app.constant.BookType
-import io.legado.app.constant.EventBus
-import io.legado.app.constant.PreferKey
-import io.legado.app.constant.Status
+import io.legado.app.constant.*
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
@@ -58,6 +56,7 @@ import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.book.toc.TocActivityResult
 import io.legado.app.ui.browser.WebViewActivity
 import io.legado.app.ui.dict.DictDialog
+import io.legado.app.ui.document.HandleFileContract
 import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.ui.replace.ReplaceRuleActivity
 import io.legado.app.ui.replace.edit.ReplaceEditActivity
@@ -113,13 +112,15 @@ class ReadBookActivity : BaseReadBookActivity(),
             it ?: return@registerForActivityResult
             it.data?.let { data ->
                 val key = data.getLongExtra("key", System.currentTimeMillis())
+                val index = data.getIntExtra("index", 0)
                 val searchResult = IntentData.get<SearchResult>("searchResult$key")
                 val searchResultList = IntentData.get<List<SearchResult>>("searchResultList$key")
                 if (searchResult != null && searchResultList != null) {
                     viewModel.searchContentQuery = searchResult.query
                     binding.searchMenu.upSearchResultList(searchResultList)
                     isShowingSearchResult = true
-                    binding.searchMenu.updateSearchResultIndex(searchResultList.indexOf(searchResult))
+                    viewModel.searchResultIndex = index
+                    binding.searchMenu.updateSearchResultIndex(index)
                     binding.searchMenu.selectedSearchResult?.let { currentResult ->
                         skipToSearch(currentResult)
                         showActionMenu()
@@ -127,6 +128,12 @@ class ReadBookActivity : BaseReadBookActivity(),
                 }
             }
         }
+    private val selectImageDir = registerForActivityResult(HandleFileContract()) {
+        it.uri?.let { uri ->
+            ACache.get().put(AppConst.imagePathKey, uri.toString())
+            viewModel.saveImage(it.value, uri)
+        }
+    }
     private var menu: Menu? = null
     private var autoPageJob: Job? = null
     private var backupJob: Job? = null
@@ -162,6 +169,7 @@ class ReadBookActivity : BaseReadBookActivity(),
         binding.cursorRight.setColorFilter(accentColor)
         binding.cursorLeft.setOnTouchListener(this)
         binding.cursorRight.setOnTouchListener(this)
+        window.setBackgroundDrawable(null)
         upScreenTimeOut()
         ReadBook.callBack = this
     }
@@ -888,6 +896,12 @@ class ReadBookActivity : BaseReadBookActivity(),
             searchContentActivity.launch(Intent(this, SearchContentActivity::class.java).apply {
                 putExtra("bookUrl", it.bookUrl)
                 putExtra("searchWord", searchWord ?: viewModel.searchContentQuery)
+                putExtra("searchResultIndex", viewModel.searchResultIndex)
+                viewModel.searchResultList?.first()?.let {
+                    if (it.query == viewModel.searchContentQuery) {
+                        IntentData.put("searchResultList", viewModel.searchResultList)
+                    }
+                }
             })
         }
     }
@@ -930,6 +944,8 @@ class ReadBookActivity : BaseReadBookActivity(),
             isShowingSearchResult = false
             binding.searchMenu.invalidate()
             binding.searchMenu.invisible()
+            binding.readView.isTextSelected = false
+            binding.readView.curPage.cancelSelect(true)
         }
     }
 
@@ -990,13 +1006,26 @@ class ReadBookActivity : BaseReadBookActivity(),
         popupAction.setItems(
             listOf(
                 SelectItem(getString(R.string.show), "show"),
-                SelectItem(getString(R.string.refresh), "refresh")
+                SelectItem(getString(R.string.refresh), "refresh"),
+                SelectItem(getString(R.string.action_save), "save"),
+                SelectItem(getString(R.string.select_folder), "selectFolder")
             )
         )
         popupAction.onActionClick = {
             when (it) {
                 "show" -> showDialogFragment(PhotoDialog(src))
                 "refresh" -> viewModel.refreshImage(src)
+                "save" -> {
+                    val path = ACache.get().getAsString(AppConst.imagePathKey)
+                    if (path.isNullOrEmpty()) {
+                        selectImageDir.launch {
+                            value = src
+                        }
+                    } else {
+                        viewModel.saveImage(src, Uri.parse(path))
+                    }
+                }
+                "selectFolder" -> selectImageDir.launch()
             }
             popupAction.dismiss()
         }
@@ -1052,7 +1081,8 @@ class ReadBookActivity : BaseReadBookActivity(),
         }
     }
 
-    override fun navigateToSearch(searchResult: SearchResult) {
+    override fun navigateToSearch(searchResult: SearchResult, index: Int) {
+        viewModel.searchResultIndex = index
         skipToSearch(searchResult)
     }
 
@@ -1062,22 +1092,23 @@ class ReadBookActivity : BaseReadBookActivity(),
         fun jumpToPosition() {
             ReadBook.curTextChapter?.let {
                 binding.searchMenu.updateSearchInfo()
-                val positions = viewModel.searchResultPositions(it, searchResult)
-                ReadBook.skipToPage(positions[0]) {
+                val (pageIndex, lineIndex, charIndex, addLine, charIndex2) =
+                    viewModel.searchResultPositions(it, searchResult)
+                ReadBook.skipToPage(pageIndex) {
                     launch {
                         isSelectingSearchResult = true
-                        binding.readView.curPage.selectStartMoveIndex(0, positions[1], positions[2])
-                        when (positions[3]) {
+                        binding.readView.curPage.selectStartMoveIndex(0, lineIndex, charIndex)
+                        when (addLine) {
                             0 -> binding.readView.curPage.selectEndMoveIndex(
                                 0,
-                                positions[1],
-                                positions[2] + viewModel.searchContentQuery.length - 1
+                                lineIndex,
+                                charIndex + viewModel.searchContentQuery.length - 1
                             )
                             1 -> binding.readView.curPage.selectEndMoveIndex(
-                                0, positions[1] + 1, positions[4]
+                                0, lineIndex + 1, charIndex2
                             )
                             //consider change page, jump to scroll position
-                            -1 -> binding.readView.curPage.selectEndMoveIndex(1, 0, positions[4])
+                            -1 -> binding.readView.curPage.selectEndMoveIndex(1, 0, charIndex2)
                         }
                         binding.readView.isTextSelected = true
                         isSelectingSearchResult = false
@@ -1195,6 +1226,9 @@ class ReadBookActivity : BaseReadBookActivity(),
         }
         observeEvent<String>(PreferKey.showBrightnessView) {
             readMenu.upBrightnessState()
+        }
+        observeEvent<List<SearchResult>>(EventBus.SEARCH_RESULT) {
+            viewModel.searchResultList = it
         }
     }
 

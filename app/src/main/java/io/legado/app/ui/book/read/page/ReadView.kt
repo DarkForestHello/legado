@@ -26,6 +26,7 @@ import io.legado.app.ui.book.read.page.entities.TextPos
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.TextPageFactory
 import io.legado.app.utils.activity
+import io.legado.app.utils.invisible
 import io.legado.app.utils.screenshot
 import java.text.BreakIterator
 import java.util.*
@@ -52,6 +53,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
     val defaultAnimationSpeed = 300
     private var pressDown = false
     private var isMove = false
+    private var isPageMove = false
 
     //起始点
     var startX: Float = 0f
@@ -80,6 +82,13 @@ class ReadView(context: Context, attrs: AttributeSet) :
     private val initialTextPos = TextPos(0, 0, 0)
 
     val slopSquare by lazy { ViewConfiguration.get(context).scaledTouchSlop }
+    val pageSlopSquare by lazy {
+        if (AppConfig.pageTouchSlop == 0) {
+            slopSquare
+        } else {
+            AppConfig.pageTouchSlop
+        }
+    }
     private val tlRect = RectF()
     private val tcRect = RectF()
     private val trRect = RectF()
@@ -97,6 +106,8 @@ class ReadView(context: Context, attrs: AttributeSet) :
         addView(nextPage)
         addView(curPage)
         addView(prevPage)
+        nextPage.invisible()
+        prevPage.invisible()
         if (!isInEditMode) {
             upBg()
             setWillNotDraw(false)
@@ -160,7 +171,6 @@ class ReadView(context: Context, attrs: AttributeSet) :
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        callBack.screenOffTimerStart()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val insets =
                 this.rootWindowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.mandatorySystemGestures())
@@ -174,6 +184,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                callBack.screenOffTimerStart()
                 if (isTextSelected) {
                     curPage.cancelSelect()
                     isTextSelected = false
@@ -185,6 +196,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 postDelayed(longPressRunnable, longPressTimeout)
                 pressDown = true
                 isMove = false
+                isPageMove = false
                 pageDelegate?.onTouch(event)
                 pageDelegate?.onDown()
                 setStartPoint(event.x, event.y)
@@ -194,21 +206,26 @@ class ReadView(context: Context, attrs: AttributeSet) :
                     isMove =
                         abs(startX - event.x) > slopSquare || abs(startY - event.y) > slopSquare
                 }
+                if (!isPageMove) {
+                    isPageMove =
+                        abs(startX - event.x) > pageSlopSquare || abs(startY - event.y) > pageSlopSquare
+                }
                 if (isMove) {
                     longPressed = false
                     removeCallbacks(longPressRunnable)
                     if (isTextSelected) {
                         selectText(event.x, event.y)
-                    } else {
+                    } else if (isPageMove) {
                         pageDelegate?.onTouch(event)
                     }
                 }
             }
             MotionEvent.ACTION_UP -> {
+                callBack.screenOffTimerStart()
                 removeCallbacks(longPressRunnable)
                 if (!pressDown) return true
                 pressDown = false
-                if (!isMove) {
+                if (!isPageMove) {
                     if (!longPressed && !pressOnTextSelected) {
                         onSingleTapUp()
                         return true
@@ -216,7 +233,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 }
                 if (isTextSelected) {
                     callBack.showTextActionMenu()
-                } else if (isMove) {
+                } else if (isPageMove) {
                     pageDelegate?.onTouch(event)
                 }
                 pressOnTextSelected = false
@@ -227,7 +244,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 pressDown = false
                 if (isTextSelected) {
                     callBack.showTextActionMenu()
-                } else if (isMove) {
+                } else if (isPageMove) {
                     pageDelegate?.onTouch(event)
                 }
                 pressOnTextSelected = false
@@ -279,6 +296,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
         kotlin.runCatching {
             curPage.longPress(startX, startY) { relativePos, lineIndex, charIndex ->
                 isTextSelected = true
+                pressOnTextSelected = true
                 initialTextPos.upData(relativePos, lineIndex, charIndex)
                 val startPos = TextPos(relativePos, lineIndex, charIndex)
                 val endPos = TextPos(relativePos, lineIndex, charIndex)
@@ -353,7 +371,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
      */
     private fun onSingleTapUp() {
         when {
-            isTextSelected -> isTextSelected = false
+            isTextSelected -> Unit
             mcRect.contains(startX, startY) -> if (!isAbortAnim) {
                 click(AppConfig.clickActionMC)
             }

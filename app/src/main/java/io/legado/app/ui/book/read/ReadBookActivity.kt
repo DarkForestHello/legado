@@ -609,13 +609,14 @@ class ReadBookActivity : BaseReadBookActivity(),
     /**
      * 当前选择的文本
      */
-    override val selectedText: String get() = binding.readView.curPage.selectedText
+    override val selectedText: String get() = binding.readView.getSelectText()
 
     /**
      * 文本选择菜单操作
      */
     override fun onMenuItemSelected(itemId: Int): Boolean {
         when (itemId) {
+            R.id.menu_aloud -> binding.readView.aloudStartSelect()
             R.id.menu_bookmark -> binding.readView.curPage.let {
                 val bookmark = it.createBookmark()
                 if (bookmark == null) {
@@ -969,14 +970,18 @@ class ReadBookActivity : BaseReadBookActivity(),
                 throw NoStackTraceException("no pay action")
             }
             JsUtils.evalJs(payAction) {
+                it["java"] = source
+                it["source"] = source
                 it["book"] = book
                 it["chapter"] = chapter
             }
         }.onSuccess {
-            startActivity<WebViewActivity> {
-                putExtra("title", getString(R.string.chapter_pay))
-                putExtra("url", it)
-                IntentData.put(it, ReadBook.bookSource?.getHeaderMap(true))
+            if (it.isNotBlank()) {
+                startActivity<WebViewActivity> {
+                    putExtra("title", getString(R.string.chapter_pay))
+                    putExtra("url", it)
+                    IntentData.put(it, ReadBook.bookSource?.getHeaderMap(true))
+                }
             }
         }.onError {
             toastOnUi(it.localizedMessage)

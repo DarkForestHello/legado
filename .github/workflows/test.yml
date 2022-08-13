@@ -104,7 +104,7 @@ jobs:
       LANZOU_FOLDER_ID: '4362859'
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: apk/
       - working-directory: apk/
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: apk/
       - working-directory: apk/
@@ -147,7 +147,7 @@ jobs:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: apk/
       - working-directory: apk/

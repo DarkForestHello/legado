@@ -59,7 +59,7 @@ jobs:
           cp -rf ${{ github.workspace }}/app/build/outputs/apk/*/*/*.apk ${{ github.workspace }}/apk/
       - name: Upload App To Artifact
         if: ${{ env.UPLOAD_ARTIFACT != 'false' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: legado apk
           path: ${{ github.workspace }}/apk/*.apk

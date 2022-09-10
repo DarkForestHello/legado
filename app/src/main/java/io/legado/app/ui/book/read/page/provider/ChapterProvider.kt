@@ -13,10 +13,7 @@ import io.legado.app.data.entities.BookChapter
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.model.ReadBook
-import io.legado.app.ui.book.read.page.entities.TextChapter
-import io.legado.app.ui.book.read.page.entities.TextColumn
-import io.legado.app.ui.book.read.page.entities.TextLine
-import io.legado.app.ui.book.read.page.entities.TextPage
+import io.legado.app.ui.book.read.page.entities.*
 import io.legado.app.utils.*
 import splitties.init.appCtx
 import java.util.*
@@ -26,7 +23,11 @@ import java.util.*
  */
 @Suppress("DEPRECATION")
 object ChapterProvider {
+    //用于图片字的替换
     private const val srcReplaceChar = "▩"
+
+    //用于评论按钮的替换
+    private const val reviewChar = "\uD83D\uDCAC"
 
     @JvmStatic
     var viewWidth = 0
@@ -119,7 +120,7 @@ object ChapterProvider {
                     book,
                     absStartX,
                     durY,
-                    if (AppConfig.enableReview) text + "\ud83d\udcac" else text,
+                    if (AppConfig.enableReview) text + reviewChar else text,
                     textPages,
                     stringBuilder,
                     titlePaint,
@@ -180,7 +181,7 @@ object ChapterProvider {
                             book,
                             absStartX,
                             durY,
-                            if (AppConfig.enableReview) text + "\ud83d\udcac" else text,
+                            if (AppConfig.enableReview) text + reviewChar else text,
                             textPages,
                             stringBuilder,
                             contentPaint
@@ -263,10 +264,10 @@ object ChapterProvider {
             } else {
                 Pair(0f, width.toFloat())
             }
-            textLine.textColumns.add(
-                TextColumn(charData = src, start = x + start, end = x + end, style = 1)
+            textLine.addColumn(
+                ImageColumn(start = x + start, end = x + end, src = src)
             )
-            textPages.last().textLines.add(textLine)
+            textPages.last().addLine(textLine)
         }
         return durY + paragraphSpacing / 10f
     }
@@ -305,7 +306,7 @@ object ChapterProvider {
                     if (fistLine.lineTop < textLayoutHeight + titleTopSpacing) {
                         textLayoutHeight = fistLine.lineTop - titleTopSpacing
                     }
-                    textPage.textLines.forEach {
+                    textPage.lines.forEach {
                         it.lineTop = it.lineTop - textLayoutHeight
                         it.lineBase = it.lineBase - textLayoutHeight
                         it.lineBottom = it.lineBottom - textLayoutHeight
@@ -313,7 +314,7 @@ object ChapterProvider {
                     y - textLayoutHeight
                 }
             }
-            isTitle && textPages.size == 1 && textPages.last().textLines.isEmpty() ->
+            isTitle && textPages.size == 1 && textPages.last().lines.isEmpty() ->
                 y + titleTopSpacing
             else -> y
         }
@@ -381,7 +382,7 @@ object ChapterProvider {
             if (textLine.isParagraphEnd) {
                 stringBuilder.append("\n")
             }
-            textPages.last().textLines.add(textLine)
+            textPages.last().addLine(textLine)
             textLine.upTopBottom(durY, textPaint)
             durY += textPaint.textHeight * lineSpacingExtra
             textPages.last().height = durY
@@ -411,7 +412,7 @@ object ChapterProvider {
         val icw = StaticLayout.getDesiredWidth(bodyIndent, textPaint) / bodyIndent.length
         for (char in bodyIndent.toStringArray()) {
             val x1 = x + icw
-            textLine.textColumns.add(
+            textLine.addColumn(
                 TextColumn(
                     charData = char,
                     start = absStartX + x,
@@ -495,22 +496,29 @@ object ChapterProvider {
         if (srcList != null && char == srcReplaceChar) {
             val src = srcList.removeFirst()
             ImageProvider.cacheImage(book, src, ReadBook.bookSource)
-            textLine.textColumns.add(
+            textLine.addColumn(
                 TextColumn(
-                    charData = src,
                     start = absStartX + xStart,
                     end = absStartX + xEnd,
-                    style = 1
+                    charData = src
                 )
             )
         } else {
-            textLine.textColumns.add(
-                TextColumn(
-                    charData = char,
+            val column = if (isLineEnd && char == reviewChar) {
+                ReviewColumn(
                     start = absStartX + xStart,
                     end = absStartX + xEnd,
-                    style = if (isLineEnd && char == "\uD83D\uDCAC") 2 else 0
+                    count = 1
                 )
+            } else {
+                TextColumn(
+                    start = absStartX + xStart,
+                    end = absStartX + xEnd,
+                    charData = char
+                )
+            }
+            textLine.addColumn(
+                column
             )
         }
     }
@@ -520,11 +528,11 @@ object ChapterProvider {
      */
     private fun exceed(absStartX: Int, textLine: TextLine, words: Array<String>) {
         val visibleEnd = absStartX + visibleWidth
-        val endX = textLine.textColumns.lastOrNull()?.end ?: return
+        val endX = textLine.columns.lastOrNull()?.end ?: return
         if (endX > visibleEnd) {
             val cc = (endX - visibleEnd) / words.size
             for (i in 0..words.lastIndex) {
-                textLine.getTextColumnReverseAt(i).let {
+                textLine.getColumnReverseAt(i).let {
                     val py = cc * (words.size - i)
                     it.start = it.start - py
                     it.end = it.end - py

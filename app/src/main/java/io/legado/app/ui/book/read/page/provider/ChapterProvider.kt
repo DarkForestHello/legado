@@ -1,5 +1,6 @@
 package io.legado.app.ui.book.read.page.provider
 
+import android.graphics.Paint
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
@@ -32,7 +33,7 @@ object ChapterProvider {
     private const val srcReplaceChar = "▩"
 
     //用于评论按钮的替换
-    private const val reviewChar = "\uD83D\uDCAC"
+    private const val reviewChar = "▨"
 
     @JvmStatic
     var viewWidth = 0
@@ -97,6 +98,10 @@ object ChapterProvider {
     @JvmStatic
     var contentPaint: TextPaint = TextPaint()
 
+    @JvmStatic
+    var reviewPaint: TextPaint = TextPaint()
+
+    @JvmStatic
     var doublePage = false
         private set
 
@@ -120,11 +125,10 @@ object ChapterProvider {
         var durY = 0f
         textPages.add(TextPage())
         if (ReadBookConfig.titleMode != 2) {
+            //标题非隐藏
             displayTitle.splitNotBlank("\n").forEach { text ->
                 setTypeText(
-                    book,
-                    absStartX,
-                    durY,
+                    book, absStartX, durY,
                     if (AppConfig.enableReview) text + reviewChar else text,
                     textPages,
                     stringBuilder,
@@ -141,6 +145,7 @@ object ChapterProvider {
         }
         contents.forEach { content ->
             if (book.getImageStyle().equals(Book.imgStyleText, true)) {
+                //图片样式为文字嵌入类型
                 var text = content.replace(srcReplaceChar, "▣")
                 val srcList = LinkedList<String>()
                 val sb = StringBuffer()
@@ -183,9 +188,7 @@ object ChapterProvider {
                     val text = content.substring(start, content.length)
                     if (text.isNotBlank()) {
                         setTypeText(
-                            book,
-                            absStartX,
-                            durY,
+                            book, absStartX, durY,
                             if (AppConfig.enableReview) text + reviewChar else text,
                             textPages,
                             stringBuilder,
@@ -512,7 +515,7 @@ object ChapterProvider {
                 ReviewColumn(
                     start = absStartX + xStart,
                     end = absStartX + xEnd,
-                    count = 2
+                    count = 100
                 )
             }
             else -> {
@@ -552,6 +555,9 @@ object ChapterProvider {
         getPaints(typeface).let {
             titlePaint = it.first
             contentPaint = it.second
+            reviewPaint.color = contentPaint.color
+            reviewPaint.textSize = contentPaint.textSize * 0.6f
+            reviewPaint.textAlign = Paint.Align.CENTER
         }
         //间距
         lineSpacingExtra = ReadBookConfig.lineSpacingExtra / 10f

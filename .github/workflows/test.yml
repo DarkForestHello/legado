@@ -44,7 +44,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       VERSIONL: ${{ needs.prepare.outputs.versionL }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
       - uses: actions/cache@v2
@@ -103,7 +103,7 @@ jobs:
       # 蓝奏云里的文件夹ID（阅读3测试版:2670621）
       LANZOU_FOLDER_ID: '4362859'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
       - uses: actions/download-artifact@v2
         with:
           path: apk/
@@ -120,7 +120,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
       - uses: actions/download-artifact@v2
         with:
           path: apk/
@@ -146,7 +146,7 @@ jobs:
       CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
       - uses: actions/download-artifact@v2
         with:
           path: apk/
